@@ -1,46 +1,53 @@
 # ServiceNow Agent Architecture
 
+## Overview
+The ServiceNow Agent is a Chrome Extension designed to assist Service Desk personnel by analyzing incidents using AI. It integrates with LLMs, Web Search, and local RAG systems.
+
+## Component Diagram
 ```mermaid
 graph TD
-    subgraph Chrome Extension
-        CS[Content Script] <--> BSW[Background Service Worker]
-        POP[Popup / Settings] <--> BSW
-        SIDE[Sidebar / UI Overlay] <--> CS
+    subgraph Browser Context
+        SN[ServiceNow Incident Page]
+        CS[Content Script]
+        P[Popup UI]
+        BS[Background Service Worker]
+        ST[(Chrome Storage)]
     end
 
-    subgraph External Services
-        BSW <--> LLM[LLM Provider - OpenAI/Anthropic/Local]
-        BSW <--> WS[Web Search API - Brave]
-        BSW <--> RAG[OpenClaw RAG Service]
+    subgraph External / Local Services
+        LLM[AI Provider / OpenAI / Anthropic]
+        WS[Brave Search API]
+        RAG[OpenClaw RAG]
     end
 
-    subgraph ServiceNow
-        SN_DOM[ServiceNow Incident Page] <--> CS
-    end
-
-    CS -- Extracts --> IncidentData[Incident ID, Short Desc, Description]
-    BSW -- Processes --> Analysis[Solution Suggestions, Similar Incidents]
-    Analysis -- Displays --> SIDE
+    %% Interactions
+    SN <-->|DOM Manipulation & Extraction| CS
+    CS <-->|Message Passing| BS
+    P <-->|Settings & Manual Trigger| BS
+    P <-->|Read/Write| ST
+    BS <-->|API Keys & History| ST
+    
+    BS <-->|Analyze Incident| LLM
+    BS <-->|Search for Error Codes| WS
+    BS <-->|Retrieve Internal Docs| RAG
 ```
 
-## Component Breakdown
+## Functional Flow
+1. **Extraction**: Content Script detects an incident page and extracts the Incident Number, Short Description, and Description.
+2. **Action**: The user clicks "Analyze with AI" (injected button or popup).
+3. **Processing**: The Service Worker gathers context, performs optional Web Search or RAG lookup, and sends the prompt to the LLM.
+4. **Presentation**: The solution suggestion is displayed in a sidebar or overlay on the ServiceNow page.
 
-1. **Content Script**:
-   - Detects ServiceNow incident forms.
-   - Extracts fields: `number`, `short_description`, `description`.
-   - Injects an "AI Analysis" button or sidebar.
-
-2. **Background Service Worker**:
-   - Manages state and API keys.
-   - Routes requests to LLM, Web Search, and RAG.
-   - Handles OAuth or API Key authentication securely.
-
-3. **Popup / Options**:
-   - UI for configuring API keys (OpenAI, Anthropic).
-   - Toggle features (Enable RAG, Enable Web Search).
-
-4. **Integration Layer**:
-   - Generic LLM wrapper.
-   - Search utility.
-   - RAG client.
-```
+## File Structure Plan
+- `manifest.json`: Extension configuration (V3).
+- `src/popup/`: Settings UI.
+  - `popup.html`
+  - `popup.js`
+  - `popup.css`
+- `src/content/`: Logic running on ServiceNow pages.
+  - `content.js`: Extraction and UI injection.
+  - `content.css`: Styling for injected elements.
+- `src/background/`: Service worker for background tasks.
+  - `background.js`: API handling, search, and RAG logic.
+- `icons/`: Extension icons.
+- `src/lib/`: Shared utilities (API clients, formatting).
