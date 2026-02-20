@@ -5,6 +5,8 @@
 
 console.log('ServiceNow Agent: Content script loaded.');
 
+let sidebar = null;
+
 /**
  * Extracts data from the current ServiceNow incident form.
  */
@@ -23,6 +25,53 @@ function extractIncidentData() {
 function getValueById(id) {
   const el = document.getElementById(id);
   return el ? el.value : null;
+}
+
+/**
+ * Creates and injects the sidebar into the DOM.
+ */
+function createSidebar() {
+  if (sidebar) return;
+
+  sidebar = document.createElement('div');
+  sidebar.className = 'sn-agent-sidebar';
+  sidebar.innerHTML = `
+    <div class="sn-agent-sidebar-header">
+      <h2>CASE ANALYSIS</h2>
+      <button class="sn-agent-sidebar-close">&times;</button>
+    </div>
+    <div class="sn-agent-sidebar-content">
+      <div class="sn-agent-loader">
+        <div class="sn-agent-spinner"></div>
+        <p>Digging through the files...</p>
+      </div>
+      <div class="sn-agent-results" style="display: none;">
+        <div class="sn-agent-result-section">
+          <h3>Findings</h3>
+          <div class="sn-agent-suggestion"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(sidebar);
+
+  sidebar.querySelector('.sn-agent-sidebar-close').addEventListener('click', () => {
+    sidebar.classList.remove('open');
+  });
+}
+
+function showLoader() {
+  createSidebar();
+  sidebar.classList.add('open');
+  sidebar.querySelector('.sn-agent-loader').classList.add('active');
+  sidebar.querySelector('.sn-agent-results').style.display = 'none';
+}
+
+function hideLoader() {
+  if (sidebar) {
+    sidebar.querySelector('.sn-agent-loader').classList.remove('active');
+  }
 }
 
 /**
@@ -49,6 +98,8 @@ function injectActionButton() {
       return;
     }
     
+    showLoader();
+
     // Send message to background script to start analysis
     chrome.runtime.sendMessage({
       type: 'ANALYZE_INCIDENT',
@@ -77,7 +128,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function displayResult(result) {
-  // Placeholder for result display logic (sidebar/modal)
   console.log('ServiceNow Agent: Received result:', result);
-  alert('AI Suggestion:\n\n' + result.suggestion);
+  createSidebar();
+  hideLoader();
+  
+  const resultsDiv = sidebar.querySelector('.sn-agent-results');
+  const suggestionDiv = sidebar.querySelector('.sn-agent-suggestion');
+  
+  suggestionDiv.innerText = result.suggestion || 'No specific findings. The trail went cold.';
+  resultsDiv.style.display = 'block';
+  sidebar.classList.add('open');
 }
