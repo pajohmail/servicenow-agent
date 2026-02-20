@@ -24,7 +24,7 @@ async function handleAnalysis(incidentData, tabId) {
     
     // 1. Get settings
     const settings = await getSettings();
-    if (!settings.apiKey) {
+    if (!settings.apiKey && settings.llmProvider !== 'local') {
       chrome.tabs.sendMessage(tabId, {
         type: 'ANALYSIS_RESULT',
         payload: { suggestion: 'Error: API Key missing. Please configure it in the extension popup.' }
@@ -32,10 +32,19 @@ async function handleAnalysis(incidentData, tabId) {
       return;
     }
 
-    // 2. Call LLM
-    const suggestion = await callLLM(incidentData, settings);
+    // 2. Perform Web Search if error code is present
+    let searchContext = '';
+    const errorCodeMatch = (incidentData.shortDescription + " " + incidentData.description).match(/(?:[^\w]|^)([A-Z]{2,}-\d+|0x[0-9A-Fa-f]+)(?:[^\w]|$)/);
+    if (errorCodeMatch && settings.searchKey) {
+      const errorCode = errorCodeMatch[1];
+      console.log('ServiceNow Agent: Detected error code:', errorCode);
+      searchContext = await performWebSearch(errorCode, settings.searchKey);
+    }
 
-    // 3. Send result back to content script
+    // 3. Call LLM with incident data and search context
+    const suggestion = await callLLM(incidentData, settings, searchContext);
+
+    // 4. Send result back to content script
     chrome.tabs.sendMessage(tabId, {
       type: 'ANALYSIS_RESULT',
       payload: { suggestion }
@@ -52,16 +61,39 @@ async function handleAnalysis(incidentData, tabId) {
 
 function getSettings() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['llmProvider', 'apiKey'], (result) => {
+    chrome.storage.sync.get(['llmProvider', 'apiKey', 'searchKey', 'azureEndpoint'], (result) => {
       resolve(result);
     });
   });
 }
 
 /**
+ * Perform a web search for error codes using Brave Search API.
+ */
+async function performWebSearch(query, apiKey) {
+  try {
+    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Subscription-Token': apiKey
+      }
+    });
+
+    if (!response.ok) return '';
+
+    const data = await response.json();
+    const snippets = data.web?.results?.slice(0, 3).map(r => r.description).join('\n') || '';
+    return snippets ? `\n\nWeb Search Results for ${query}:\n${snippets}` : '';
+  } catch (err) {
+    console.error('Search failed:', err);
+    return '';
+  }
+}
+
+/**
  * Call the selected LLM provider.
  */
-async function callLLM(data, settings) {
+async function callLLM(data, settings, searchContext) {
   const prompt = `You are a ServiceNow expert assistant. Analyze the following incident and provide a concise solution suggestion including:
 1. Likely root cause.
 2. Recommended troubleshooting steps.
@@ -70,15 +102,20 @@ async function callLLM(data, settings) {
 Incident Details:
 Number: ${data.number}
 Short Description: ${data.shortDescription}
-Description: ${data.description}
+Description: ${data.description}${searchContext}
 
 Please format your response clearly.`;
 
-  if (settings.llmProvider === 'anthropic') {
-    return await callAnthropic(prompt, settings.apiKey);
-  } else {
-    // Default to OpenAI
-    return await callOpenAI(prompt, settings.apiKey);
+  switch (settings.llmProvider) {
+    case 'anthropic':
+      return await callAnthropic(prompt, settings.apiKey);
+    case 'azure':
+      return await callAzure(prompt, settings.apiKey, settings.azureEndpoint);
+    case 'local':
+      return await callLocalRAG(prompt);
+    case 'openai':
+    default:
+      return await callOpenAI(prompt, settings.apiKey);
   }
 }
 
@@ -108,6 +145,34 @@ async function callOpenAI(prompt, apiKey) {
   return result.choices[0].message.content;
 }
 
+async function callAzure(prompt, apiKey, endpoint) {
+  // Assuming a standard Azure OpenAI chat completion URL format
+  // Endpoint example: https://YOUR_RESOURCE.openai.azure.com/
+  const url = `${endpoint.replace(/\/$/, '')}/openai/deployments/gpt-4/chat/completions?api-version=2024-02-15-preview`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': apiKey
+    },
+    body: JSON.stringify({
+      messages: [
+        { role: 'system', content: 'You are a helpful IT support assistant specialized in ServiceNow.' },
+        { role: 'user', content: prompt }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Azure OpenAI API error: ${error.error?.message || response.statusText}`);
+  }
+
+  const result = await response.json();
+  return result.choices[0].message.content;
+}
+
 async function callAnthropic(prompt, apiKey) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -115,7 +180,7 @@ async function callAnthropic(prompt, apiKey) {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      'dangerously-allow-browser': 'true' // In a chrome extension background script, fetch is fine.
+      'dangerously-allow-browser': 'true'
     },
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20240620',
@@ -133,4 +198,24 @@ async function callAnthropic(prompt, apiKey) {
 
   const result = await response.json();
   return result.content[0].text;
+}
+
+async function callLocalRAG(prompt) {
+  // Prepared connection to OpenClaw RAG or local proxy
+  try {
+    const response = await fetch('http://localhost:8000/v1/rag/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: prompt })
+    });
+    
+    if (!response.ok) {
+       return "The local RAG endpoint is silent. Maybe the connection is dead. (Error: " + response.status + ")";
+    }
+    
+    const result = await response.json();
+    return result.answer || result.content || "The RAG system returned an empty lead.";
+  } catch (err) {
+    return "Could not reach the local RAG office. The streets are empty. (Connection Refused)";
+  }
 }
