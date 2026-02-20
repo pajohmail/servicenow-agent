@@ -1,0 +1,10 @@
+#sn-agent-analyze-btn {
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px 12px;
+}
+
+#sn-agent-analyze-btn:hover {
+  background-color: #bae7ff !important;
+}
