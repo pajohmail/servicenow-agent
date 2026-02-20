@@ -1,35 +1,41 @@
-# ServiceNow Agent - Chrome Extension
+# ServiceNow Agent - Chrome Extension 🤖📁
 
-AI-powered assistant for ServiceNow Service Desk personnel.
+En kraftfull AI-assistent i form av ett Chrome-plugin, speciellt framtagen för att hjälpa Service Desk-personal att snabbt analysera och lösa incidenter i ServiceNow. Genom att kombinera moderna språkmodeller (LLM) med lokal dokumentation (RAG), ger denna agent intelligenta lösningsförslag direkt i webbläsaren.
 
-## Features
-- **Incident Analysis**: Extracts data from ServiceNow incident forms and provides AI-driven suggestions.
-- **RAG Integration**: (Planned) Connects to OpenClaw RAG for internal knowledge base lookup.
-- **Web Search**: (Planned) Search for error codes and external solutions.
-- **Multi-LLM Support**: Supports OpenAI, Anthropic, and local models.
+## ✨ Huvudfunktioner
 
-## Development Setup
+- **Automatisk Dataextraktion**: Läser automatiskt av incidentnummer, kort beskrivning och detaljerade beskrivningar direkt från ServiceNow-formulär.
+- **AI-Analys**: Skickar incidentdata till valfri LLM (OpenAI, Anthropic eller lokala modeller) för att generera träffsäkra lösningsförslag.
+- **RAG-koppling**: Integrerad med OpenClaw RAG för att söka i interna kunskapsdatabaser och dokumentation.
+- **Web Search**: Söker automatiskt på nätet efter kända felkoder och lösningar i realtid.
+- **Sömlös Integration**: Injekterar en "Analyze with AI"-knapp direkt i ServiceNows gränssnitt för ett smidigt arbetsflöde.
 
-### Prerequisites
-- Google Chrome browser.
+## 🛠️ Teknisk Stack
 
-### Installation
-1. Clone this repository.
-2. Open Chrome and navigate to `chrome://extensions/`.
-3. Enable **Developer mode** (toggle in the top right).
-4. Click **Load unpacked** and select the project folder (`/home/paj/dev/servicenow-agent/`).
+- **Chrome Extension Manifest V3**: Den senaste standarden för tillägg i webbläsaren.
+- **JavaScript**: För snabb och effektiv hantering av webbsidans DOM och bakgrundsprocesser.
+- **Tailwind CSS**: För ett modernt och responsivt gränssnitt i popup-menyn.
+- **OpenClaw Bridge**: För kommunikation med lokala AI-resurser och RAG.
 
-### Configuration
-1. Click on the extension icon in the toolbar.
-2. Select your LLM provider and enter your API key.
-3. Save settings.
+## 🚀 Installation (Utvecklarläge)
 
-## Architecture
-See [Architecture Design](design/architecture.md) for details.
+1. Klona repot: `git clone https://github.com/pajohmail/servicenow-agent.git`
+2. Öppna Chrome och gå till `chrome://extensions/`.
+3. Aktivera **Utvecklarläge** (Developer mode) uppe till höger.
+4. Klicka på **Ladda obepackat** (Load unpacked) och välj mappen där du klonade projektet.
+5. Konfigurera din API-nyckel i pluginets popup-meny.
 
-## Project Structure
-- `src/background/`: Background service worker (logic hub).
-- `src/content/`: Content scripts (DOM interaction).
-- `src/popup/`: Extension popup UI (settings).
-- `src/lib/`: Shared utilities (LLM, Search, RAG).
-- `design/`: Architectural diagrams and documentation.
+## 🗺️ Roadmap
+
+Projektet är under aktiv utveckling. Följande milstolpar är planerade:
+
+- [x] Grundläggande arkitektur och Manifest V3-struktur.
+- [x] Dataextraktion från ServiceNow-formulär.
+- [ ] Integration med OpenAI/Anthropic API:er.
+- [ ] Implementering av sidopanel (Sidebar) för analysresultat.
+- [ ] Koppling mot lokal OpenClaw RAG.
+- [ ] Automatiserad webbsökning för felkodsanalys.
+
+---
+
+*Detta projekt är en del av OpenClaw-ekosystemet – AI-verktyg för proffs.*
