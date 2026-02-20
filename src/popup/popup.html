@@ -19,6 +19,7 @@
         <select id="llm-provider">
           <option value="openai">OpenAI (GPT-4o)</option>
           <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+          <option value="azure">MS Azure OpenAI (Copilot)</option>
           <option value="local">Local / OpenClaw</option>
         </select>
       </section>
@@ -26,6 +27,11 @@
       <section class="form-group">
         <label for="api-key">LLM API Key</label>
         <input type="password" id="api-key" placeholder="sk-...">
+      </section>
+
+      <section class="form-group" id="azure-endpoint-group" style="display: none;">
+        <label for="azure-endpoint">Azure Endpoint</label>
+        <input type="text" id="azure-endpoint" placeholder="https://YOUR_RESOURCE.openai.azure.com/">
       </section>
 
       <section class="form-group">
