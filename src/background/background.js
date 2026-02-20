@@ -32,13 +32,10 @@ async function handleAnalysis(incidentData, tabId) {
       return;
     }
 
-    // 2. (Optional) Perform Web Search or RAG
-    // let searchResults = await performSearch(incidentData.shortDescription, settings.searchKey);
-    
-    // 3. Call LLM
+    // 2. Call LLM
     const suggestion = await callLLM(incidentData, settings);
 
-    // 4. Send result back to content script
+    // 3. Send result back to content script
     chrome.tabs.sendMessage(tabId, {
       type: 'ANALYSIS_RESULT',
       payload: { suggestion }
@@ -55,19 +52,85 @@ async function handleAnalysis(incidentData, tabId) {
 
 function getSettings() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['llmProvider', 'apiKey', 'searchKey'], (result) => {
+    chrome.storage.sync.get(['llmProvider', 'apiKey'], (result) => {
       resolve(result);
     });
   });
 }
 
 /**
- * Placeholder for LLM API call.
+ * Call the selected LLM provider.
  */
 async function callLLM(data, settings) {
-  // This is a stub. Implementation for OpenAI/Anthropic will be added later.
-  return `This is a mock suggestion for incident ${data.number}:
-1. Check the server logs for timeout errors.
-2. Verify if the user has correct permissions.
-3. Reference KB001234 for similar issues.`;
+  const prompt = `You are a ServiceNow expert assistant. Analyze the following incident and provide a concise solution suggestion including:
+1. Likely root cause.
+2. Recommended troubleshooting steps.
+3. Relevant Knowledge Base search terms.
+
+Incident Details:
+Number: ${data.number}
+Short Description: ${data.shortDescription}
+Description: ${data.description}
+
+Please format your response clearly.`;
+
+  if (settings.llmProvider === 'anthropic') {
+    return await callAnthropic(prompt, settings.apiKey);
+  } else {
+    // Default to OpenAI
+    return await callOpenAI(prompt, settings.apiKey);
+  }
+}
+
+async function callOpenAI(prompt, apiKey) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a helpful IT support assistant specialized in ServiceNow.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`OpenAI API error: ${error.error?.message || response.statusText}`);
+  }
+
+  const result = await response.json();
+  return result.choices[0].message.content;
+}
+
+async function callAnthropic(prompt, apiKey) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'dangerously-allow-browser': 'true' // In a chrome extension background script, fetch is fine.
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-sonnet-20240620',
+      max_tokens: 1024,
+      messages: [
+        { role: 'user', content: prompt }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Anthropic API error: ${error.error?.message || response.statusText}`);
+  }
+
+  const result = await response.json();
+  return result.content[0].text;
 }
