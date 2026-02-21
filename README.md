@@ -1,21 +1,19 @@
 # ServiceNow Agent - Chrome Extension 🤖📁
 
-En kraftfull AI-assistent i form av ett Chrome-plugin, speciellt framtagen för att hjälpa Service Desk-personal att snabbt analysera och lösa incidenter i ServiceNow. Genom att kombinera moderna språkmodeller (LLM) med lokal dokumentation (RAG), ger denna agent intelligenta lösningsförslag direkt i webbläsaren.
+En kraftfull AI-assistent i form av ett Chrome-plugin, speciellt framtagen för att hjälpa Service Desk-personal att snabbt analysera och lösa incidenter i ServiceNow. Genom att använda moderna språkmodeller (LLM) ger denna agent intelligenta lösningsförslag direkt i webbläsaren.
 
 ## ✨ Huvudfunktioner
 
 - **Automatisk Dataextraktion**: Läser automatiskt av incidentnummer, kort beskrivning och detaljerade beskrivningar direkt från ServiceNow-formulär.
-- **AI-Analys**: Skickar incidentdata till valfri LLM (OpenAI, Anthropic eller lokala modeller) för att generera träffsäkra lösningsförslag.
-- **RAG-koppling**: Integrerad med OpenClaw RAG för att söka i interna kunskapsdatabaser och dokumentation.
-- **Web Search**: Söker automatiskt på nätet efter kända felkoder och lösningar i realtid.
-- **Sömlös Integration**: Injekterar en "Analyze with AI"-knapp direkt i ServiceNows gränssnitt för ett smidigt arbetsflöde.
+- **AI-Analys**: Skickar incidentdata till valfri LLM (OpenAI, Anthropic eller Azure OpenAI/Copilot) för att generera träffsäkra lösningsförslag.
+- **Web Search**: Söker automatiskt på nätet efter kända felkoder och lösningar i realtid via integrerade sök-API:er.
+- **Sömlös Integration**: Injekterar en snygg sidopanel direkt i ServiceNows gränssnitt för ett smidigt arbetsflöde.
 
 ## 🛠️ Teknisk Stack
 
 - **Chrome Extension Manifest V3**: Den senaste standarden för tillägg i webbläsaren.
 - **JavaScript**: För snabb och effektiv hantering av webbsidans DOM och bakgrundsprocesser.
-- **Tailwind CSS**: För ett modernt och responsivt gränssnitt i popup-menyn.
-- **OpenClaw Bridge**: För kommunikation med lokala AI-resurser och RAG.
+- **Tailwind CSS**: För ett modernt och responsivt gränssnitt i popup-menyn och sidopanelen.
 
 ## 🚀 Installation (Utvecklarläge)
 
@@ -31,11 +29,11 @@ Projektet är under aktiv utveckling. Följande milstolpar är planerade:
 
 - [x] Grundläggande arkitektur och Manifest V3-struktur.
 - [x] Dataextraktion från ServiceNow-formulär.
-- [ ] Integration med OpenAI/Anthropic API:er.
-- [ ] Implementering av sidopanel (Sidebar) för analysresultat.
-- [ ] Koppling mot lokal OpenClaw RAG.
-- [ ] Automatiserad webbsökning för felkodsanalys.
+- [x] Integration med OpenAI, Anthropic och Azure OpenAI (Copilot).
+- [x] Implementering av sidopanel (Sidebar) för analysresultat.
+- [x] Automatiserad webbsökning för felkodsanalys.
+- [ ] **Nästa version:** Integration med RAG (Retrieval-Augmented Generation) för sökning i lokal dokumentation.
 
 ---
 
-*Detta projekt är en del av OpenClaw-ekosystemet – AI-verktyg för proffs.*
+*Detta projekt är en del av ett ekosystem av AI-verktyg för proffs.*
